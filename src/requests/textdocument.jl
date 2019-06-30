@@ -84,7 +84,7 @@ function process(r::JSONRPC.Request{Val{Symbol("textDocument/didChange")},DidCha
     end
     doc._version = r.params.textDocument.version
     
-    if length(r.params.contentChanges) == 1 && !endswith(doc._uri, ".jmd")
+    if length(r.params.contentChanges) == 1 && !endswith(doc._uri, ".jmd") && first(r.params.contentChanges).range !== nothing
         tdcce = first(r.params.contentChanges)
         new_cst = _partial_update(doc, tdcce) 
         ls_diags = Diagnostic[]
@@ -163,6 +163,7 @@ function _partial_update(doc::Document, tdcce::TextDocumentContentChangeEvent)
     doc.cst = cst
     if doc.cst.typ === CSTParser.FileH
         doc.cst.val = doc.path
+        doc.cst.ref = doc
     end
 end
 

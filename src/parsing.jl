@@ -8,6 +8,7 @@ function parse_all(doc::Document, server)
     end
     if doc.cst.typ === CSTParser.FileH
         doc.cst.val = doc.path
+        doc.cst.ref = doc
     end
     ls_diags = Diagnostic[]
     if server.runlinter && doc._runlinter
@@ -50,8 +51,12 @@ function mark_errors(doc, out = Diagnostic[])
                         push!(out, Diagnostic(Range(r[1] - 1, r[2], line - 1, char), 2, "Julia", "Julia", "Missing reference: $(errs[i][2].val)", nothing))
                     elseif errs[i][2].typ === CSTParser.ErrorToken
                         push!(out, Diagnostic(Range(r[1] - 1, r[2], line - 1, char), 1, "Julia", "Julia", "Parsing error", nothing))
-                    elseif errs[i][2].typ === CSTParser.Call && errs[i][2].val == "Error, incorrect number of arguments"
-                        push!(out, Diagnostic(Range(r[1] - 1, r[2], line - 1, char), 2, "Julia", "Julia", "Incorrect number of args", nothing))
+                    elseif errs[i][2].ref == StaticLint.IncorrectCallNargs
+                        push!(out, Diagnostic(Range(r[1] - 1, r[2], line - 1, char), 2, "Julia", "Julia", "Incorrect number of arguments", nothing))
+                    elseif errs[i][2].ref == StaticLint.IncorrectIterSpec
+                        push!(out, Diagnostic(Range(r[1] - 1, r[2], line - 1, char), 2, "Julia", "Julia", "Incorrect specification for iterator", nothing))
+                    elseif errs[i][2].ref == StaticLint.NothingEquality
+                        push!(out, Diagnostic(Range(r[1] - 1, r[2], line - 1, char), 2, "Julia", "Julia", "Compare against `nothing` using === ", nothing))
                     end
                     i += 1
                     i>n && break
@@ -71,7 +76,7 @@ function get_errors(x::EXPR, errs = Tuple{Int,EXPR}[], pos = 0)
         if x.ref != StaticLint.NoReference 
             push!(errs, (pos, x))
         end
-    elseif x.typ == CSTParser.Call
+    elseif x.ref isa StaticLint.LintCodes
         push!(errs, (pos, x))
     end
     if x.args !== nothing
