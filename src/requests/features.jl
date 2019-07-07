@@ -16,9 +16,11 @@ function get_signatures(b::CSTParser.Binding, sigs, server)
         if b.val isa CSTParser.EXPR && CSTParser.defines_function(b.val)
             sig = CSTParser.rem_where_decl(CSTParser.get_sig(b.val))
             args = []
-            for i = 2:length(sig.args)
-                if sig.args[i].binding !== nothing 
-                    push!(args, sig.args[i].binding)
+            if sig.args !== nothing
+                for i = 2:length(sig.args)
+                    if sig.args[i].binding !== nothing 
+                        push!(args, sig.args[i].binding)
+                    end
                 end
             end
             params = (a->ParameterInformation(a.name)).(args)
@@ -94,10 +96,10 @@ function process(r::JSONRPC.Request{Val{Symbol("textDocument/definition")},TextD
     locations = Location[]
     doc = server.documents[URI2(r.params.textDocument.uri)]
     offset = get_offset(doc, r.params.position)
-    x = get_expr(getcst(doc), offset)
+    x = get_identifier(getcst(doc), offset)
     if x isa EXPR && StaticLint.hasref(x)
         b = x.ref
-        if b isa SymbolServer.FunctionStore
+        if b isa SymbolServer.FunctionStore || b isa SymbolServer.structStore
             for m in b.methods
                 if isfile(m.file)
                     push!(locations, Location(filepath2uri(m.file), Range(m.line - 1, 0, m.line -1, 0)))
@@ -181,7 +183,7 @@ function find_references(textDocument::TextDocumentIdentifier, position::Positio
     locations = Location[]
     doc = server.documents[URI2(textDocument.uri)] 
     offset = get_offset(doc, position)
-    x = get_expr(getcst(doc), offset)
+    x = get_identifier(getcst(doc), offset)
     if x isa EXPR && StaticLint.hasref(x) && x.ref isa CSTParser.Binding
         for r in x.ref.refs
             !(r isa EXPR) && continue
