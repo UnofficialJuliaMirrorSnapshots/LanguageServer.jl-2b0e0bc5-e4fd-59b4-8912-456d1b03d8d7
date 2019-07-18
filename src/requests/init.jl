@@ -12,7 +12,7 @@ const serverCapabilities = ServerCapabilities(TextDocumentSyncKind["Incremental"
     false, #codeActionProvider::Bool
     # codeLensProvider::CodeLensOptions
     true, #documentFormattingProvider::Bool
-    true, #documentRangeFormattingProvider::Bool
+    false, #documentRangeFormattingProvider::Bool
     # documentOnTypeFormattingProvider::DocumentOnTypeFormattingOptions
     true, #renameProvider::Bool
     # DocumentLinkOptions(false), #documentLinkProvider::DocumentLinkOptions
@@ -74,7 +74,7 @@ end
 
 function process(r::JSONRPC.Request{Val{Symbol("initialize")},InitializeParams}, server)
     # Only look at rootUri and rootPath if the client doesn't support workspaceFolders
-    if r.params.capabilities.workspace.workspaceFolders == nothing || r.params.capabilities.workspace.workspaceFolders == false
+    if r.params.capabilities.workspace.workspaceFolders === nothing || r.params.capabilities.workspace.workspaceFolders == false
         if !(r.params.rootUri isa Nothing)
             push!(server.workspaceFolders, uri2filepath(r.params.rootUri))
         elseif !(r.params.rootPath isa Nothing)

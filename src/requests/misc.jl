@@ -20,7 +20,6 @@ end
 
 function process(r::JSONRPC.Request{Val{Symbol("julia/lint-package")},Nothing}, server)
     for (uri, f) in server.documents
-        @info basename(uri._uri), " ", f.code.index
     end
 end
 
@@ -98,13 +97,14 @@ function process(r::JSONRPC.Request{Val{Symbol("julia/getCurrentBlockOffsetRange
                 if a.typ === CSTParser.ModuleH
                     if loc + a.args[1].fullspan + a.args[2].fullspan < offset < loc + a.args[1].fullspan + a.args[2].fullspan + a.args[3].fullspan
                         loc0 = loc +  a.args[1].fullspan + a.args[2].fullspan
+                        loc += a.args[1].fullspan + a.args[2].fullspan
                         for b in a.args[3].args
                             if loc <= offset < loc + b.fullspan
                                 p1, p2, p3 = loc + 1, loc + b.span, loc + b.fullspan
+                                break
                             end
                             loc += b.fullspan
                         end
-                        p1, p2, p3 = loc0 + 1, loc0 + a.span, loc0 + a.fullspan
                     else
                         p1, p2, p3 = loc + 1, loc + a.span, loc + a.fullspan
                     end
